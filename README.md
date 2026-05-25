@@ -103,7 +103,7 @@ The core features are:
 
   So you can save the trouble of manually building function table with lots of if-else.
 
-  > **Note that `a.*AccessTable<A>::data.privateData` now causes compilation error on gcc 16.1, but such compiler bug has been fixed in latest gcc build**.
+  > **Note that `a.*AccessTable<A>::data.privateData` now causes compilation error on gcc 16.1, but such compiler bug has been fixed in latest gcc build**. You can try it on compiler explorer and I may also post a link later.
 
 + const/volatile safety: a const object can only access const members, and non-const function overloads will be excluded. For example:
 
@@ -165,9 +165,10 @@ class A
 
 ## TODOs
 
-This library is still in an immature status (just as reflection is still in an immature status in current C++ compilers). There can still be some improvements:
+This library is still in an immature status (just as reflection is still immature in current C++ compilers). There can still be some improvements:
 
 + Unnamed functions are not supported yet, including constructor, destructor and operator.
 + Currently `DynamicAccessTable` will generate a table for all members, which may be too large in some cases. Annotation labels like `[[=DynamicCall]]` or other methods may be designed to support pruning.
 + Code formatting is not good since clang-format hasn't supported formatting syntax regarding reflection yet.
++ You still need to convert objects to base types to access members of base class.
 + `noexcept` is not kept yet. But such feature is not hard to add, and please submit an issue if you want it eagerly :).
