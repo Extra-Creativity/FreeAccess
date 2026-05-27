@@ -8,6 +8,7 @@ using namespace FreeAccess;
 
 class A
 {
+public:
     int privateData = 1;
 
     using Type = void*;
@@ -15,7 +16,6 @@ class A
     
     static inline int staticData = 3;
 
-public:
     using ForTestUse = B<int>;
 
     int publicData = 2;
@@ -69,6 +69,14 @@ int GetData(A& a, std::string_view name)
         throw std::runtime_error{ "Error code: " + std::to_string((int)result.error()) };
 }
 
+int& GetDataRef(A& a, std::string_view name)
+{
+    if (auto result = DynamicAccessTable<A>::GetData<int&>(name, a))
+        return *result;
+    else
+        throw std::runtime_error{ "Error code: " + std::to_string((int)result.error()) };
+}
+
 int CallFunction(A& a, std::string_view name)
 {
     // Find the best candidate among "a.name(1.5);" and converts to int.
@@ -84,6 +92,10 @@ void DTableTest()
     int d1 = GetData(a, "privateData"), d2 = GetData(a, "publicData");
     int r1 = CallFunction(a, "PublicFunc"), r2 = CallFunction(a, "AnotherFunc");
     std::println("{} {} {} {}", d1, d2, r1, r2);
+
+    int& d3 = GetDataRef(a, "publicData");
+    d3 = 442;
+    std::println("Reference test: {} -> {}", d2, a.publicData);
 }
 
 int main()

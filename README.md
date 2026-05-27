@@ -82,7 +82,8 @@ The core features are:
   Or even call them with runtime string!
 
   ```c++
-  // Note: the actual returned value is std::expected, and you should check
+  // Note: the actual returned value is std::expected, and you should check whether the call is valid.
+  // Here we assume "name" is always valid so use operator* directly. 
   int GetData(A& a, std::string_view name)
   { // You can also use int& as long as you can ensure that "a.name" is int.
       return *DynamicAccessTable<A>::GetData<int>(name, a);
@@ -101,7 +102,7 @@ The core features are:
   }
   ```
 
-  So you can save the trouble of manually building function table with lots of if-else.
+  So you can save the trouble of manually building function table with lots of if-else. Also, since `std::expected<T, E>` forbids `T` to be reference type, `std::expected<std::reference_wrapper<T>, E>` will be returned instead when `GetData<T>` or `Call<T>` specify reference.
 
   > **Note that `a.*AccessTable<A>::data.privateData` now causes compilation error on gcc 16.1, but such compiler bug has been fixed in latest gcc build**. You can try it on compiler explorer and I may also post a link later.
 
@@ -172,3 +173,4 @@ This library is still in an immature status (just as reflection is still immatur
 + Code formatting is not good since clang-format hasn't supported formatting syntax regarding reflection yet.
 + You still need to convert objects to base types to access members of base class.
 + `noexcept` is not kept yet. But such feature is not hard to add, and please submit an issue if you want it eagerly :).
++ Static function cannot be called without object yet.

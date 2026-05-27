@@ -139,6 +139,11 @@ consteval auto GenerateFunctions()
     return infos;
 }
 
+template<typename T, typename E>
+using ExpectedType = std::expected<
+    std::conditional_t<std::is_reference_v<T>, 
+        std::reference_wrapper<std::remove_reference_t<T>>, T>, 
+    E>;
 }
 
 template<typename T, std::meta::access_context AccessContext = std::meta::access_context::unchecked()>
@@ -205,7 +210,8 @@ class DynamicAccessTable : public DynamicAccessTableBase
     }
 
     template<typename RetType, typename U, typename V, typename... Args>
-    static std::expected<RetType, Error> Invoke(U& map, std::string_view name, V&& obj, Args... args)
+    static Details::ExpectedType<RetType, Error> Invoke(
+        U& map, std::string_view name, V&& obj, Args... args)
     {
         static_assert(std::derived_from<std::remove_cvref_t<V>, T>,
                       "Passed object isn't derived from the type!");
@@ -215,20 +221,20 @@ class DynamicAccessTable : public DynamicAccessTableBase
             return std::unexpected(Error::NoSuchMember);
     
         auto& callable = it->second;
-        return callable.visit([&](auto&& realCallable) -> std::expected<RetType, Error> {
+        return callable.visit([&](auto&& realCallable) -> Details::ExpectedType<RetType, Error> {
             using Type = std::remove_cvref_t<decltype(realCallable)>;
             if constexpr (std::is_invocable_r_v<RetType, Type, V&&, Args...>)
             {
                 if constexpr (std::is_void_v<RetType>)
                 {
-                    std::invoke(realCallable, 
-                        std::forward<V>(obj), std::forward<Args>(args)...);
+                    std::invoke(realCallable, std::forward<V>(obj),
+                                std::forward<Args>(args)...);
                     return {};
                 }
                 else
                 {
-                    return std::invoke_r<RetType>(realCallable, 
-                        std::forward<V>(obj), std::forward<Args>(args)...);
+                    return std::invoke_r<RetType>(realCallable, std::forward<V>(obj), 
+                                                  std::forward<Args>(args)...);
                 }
             }
             return std::unexpected(Error::NoMatchingCall);
@@ -236,19 +242,22 @@ class DynamicAccessTable : public DynamicAccessTableBase
     }
 
     template<typename RetType, typename U>
-    static std::expected<RetType, Error> InvokeStatic(U& map, std::string_view name)
+    static Details::ExpectedType<RetType, Error> InvokeStatic(
+        U& map, std::string_view name)
     {
         auto it = map.find(name);
         if (it == map.end())
             return std::unexpected(Error::NoSuchMember);
     
         auto& callable = it->second;
-        return callable.visit([&](auto objPtr) -> std::expected<RetType, Error> {
+        return callable.visit([&](auto objPtr) -> Details::ExpectedType<RetType, Error> {
             using Type = std::remove_cvref_t<decltype(*objPtr)>;
             if constexpr (std::convertible_to<Type, RetType>)
             {
                 if constexpr (!std::is_void_v<RetType>)
                     return static_cast<RetType>(*objPtr);
+                else
+                    return {};
             }
             return std::unexpected(Error::NoMatchingCall);
         });
