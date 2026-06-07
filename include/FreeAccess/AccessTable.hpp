@@ -65,7 +65,7 @@ class StaticTemplateOverload
 {
 public:
     template<typename T, typename... Args>
-    decltype(auto) operator()(T&& obj, Args... args)
+    static decltype(auto) operator()(T&& obj, Args... args)
     requires requires
     {
         requires std::same_as<std::remove_cvref_t<T>, ObjectType>;
