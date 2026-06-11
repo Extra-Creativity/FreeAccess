@@ -71,16 +71,27 @@ public:
         using RetType = [:return_type_of(Func):];
 
     public:
-        NullCollapse<RetType, AccessContext> operator()(Args... args)
+        auto operator()(Args... args)
         requires requires(From&& obj)
         {
             obj.[:Func:](std::forward<Args>(args)...);
         }
         {
             auto objPtr = GetFrom();
-            if (!objPtr)
-                return {};
-            return { (objPtr->[:Func:])(std::forward<Args>(args)...) };
+            if constexpr (std::is_same_v<RetType, void>)
+            {
+                if (!objPtr)
+                    return false;
+                (objPtr->[:Func:])(std::forward<Args>(args)...);
+                return true;
+            }
+            else
+            {
+                using SafeRetType = NullCollapse<RetType, AccessContext>;
+                if (!objPtr)
+                    return SafeRetType{};
+                return SafeRetType{ (objPtr->[:Func:])(std::forward<Args>(args)...) };
+            }
         }
     };
 
@@ -98,13 +109,22 @@ public:
         }
         {
             using RetType = decltype(obj.[:Func:](std::forward<Args>(args)...));
-            using SafeRetType = NullCollapse<RetType, AccessContext>;
 
             auto objPtr = GetFrom();
-            if (!objPtr)
-                return SafeRetType{};
-
-            return SafeRetType{ (objPtr->template [:Func:])(std::forward<Args>(args)...) };
+            if constexpr (std::is_same_v<RetType, void>)
+            {
+                if (!objPtr)
+                    return false;
+                (objPtr->template [:Func:])(std::forward<Args>(args)...);
+                return true;
+            }
+            else
+            {
+                using SafeRetType = NullCollapse<RetType, AccessContext>;
+                if (!objPtr)
+                    return SafeRetType{};
+                return SafeRetType{ (objPtr->template [:Func:])(std::forward<Args>(args)...) };
+            }
         }
     };
 };
@@ -222,4 +242,3 @@ public:
 };
 
 }
-// TODO: Add Traits specializations for e.g. smart pointers.
